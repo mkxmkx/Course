@@ -3,7 +3,6 @@ package newsspider.news.processor;
 
 import newsspider.news.pipeline.MySQLPipeline;
 import newsspider.news.repository.NewsRepository;
-import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -15,14 +14,13 @@ import us.codecraft.webmagic.processor.PageProcessor;
 
 import java.util.List;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * 搜狐新闻爬虫
+ * 搜狗搜索，搜狐新闻爬虫
  */
 
 @Component
-public class SogouProcessor implements PageProcessor {
+public class SohuProcessor implements PageProcessor {
     @Autowired
     NewsRepository newsRepository;
 
@@ -78,6 +76,7 @@ public class SogouProcessor implements PageProcessor {
                 logger.debug("Content: " + Content);
                 page.putField("Content",Content);
                 page.putField("URL",page.getUrl().toString());
+                page.putField("Source","搜狐新闻");
             }
 
         }
@@ -87,8 +86,12 @@ public class SogouProcessor implements PageProcessor {
 
     public void creatSpider()
     {
+        System.setProperty("selenuim_config", "D://spiderProject/webMagicProject/chromedriver/config.ini");
         String searchURL = "https://news.sogou.com/news?query=site%3Asohu.com" + "中美贸易战";
-        Spider.create(new SogouProcessor())
+        SeleniumDownloader seleniumDownloader = new SeleniumDownloader("D://spiderProject/webMagicProject/chromedriver/chromedriver.exe");
+        seleniumDownloader.setSleepTime(3000);
+        Spider.create(new SohuProcessor())
+                .setDownloader(seleniumDownloader)
                 .addUrl(searchURL)
                 .addPipeline(new MySQLPipeline(newsRepository))
                 .thread(5)

@@ -14,21 +14,19 @@ import us.codecraft.webmagic.processor.PageProcessor;
 
 import java.util.List;
 
-/**
- * 搜狗搜索，腾讯新闻
- */
-
 @Component
-public class qqProcessor implements PageProcessor {
+public class ChinaNewsProcessor implements PageProcessor {
     @Autowired
     NewsRepository newsRepository;
 
 
-    public static final String first_url = "https://news\\.sogou\\.com/news\\?query=site:qq\\.com [\\S]+";
+    public static final String first_url = "http://sou\\.chinanews\\.com/search\\.do\\?q=[\\S]+";
 
-    private Site site = Site.me().setRetryTimes(5).setSleepTime(6000).setCharset("UTF-8");
+    private Site site = Site.me().setRetryTimes(3).setSleepTime(6000).setCharset("UTF-8");
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
+
+    private int start = 0;
 
     @Override
     public Site getSite()
@@ -39,36 +37,38 @@ public class qqProcessor implements PageProcessor {
     @Override
     public void process(Page page)
     {
-        logger.debug("url: " + page.getUrl().toString());
-        logger.debug(page.getHtml().toString());
-        boolean flag = page.getUrl().regex(first_url).match();
-        logger.error(String.valueOf(flag));
+        logger.debug("url:" + page.getUrl().toString());
 
         if(page.getUrl().regex(first_url).match())
         {
             logger.debug("firstUrl: " + page.getUrl().toString());
-            List<String> urlList = page.getHtml().xpath("//*[@id='main']//*[@class='vrTitle']")
+            List<String> urlList = page.getHtml().xpath("//*[@id='news_list']")
                     .links().all();
             logger.debug("URL list size : " + urlList.size());
             page.addTargetRequests(urlList);
-            List<String> nextURL_a_List = page.getHtml().xpath("//*[@id='pagebar_container']/a/@id").all();
-            if (nextURL_a_List.get(nextURL_a_List.size()-1).equals("sogou_next"))
+            List<String> nextURL_a_List = page.getHtml().xpath("//*[@id='pagediv']/a/text()").all();
+            logger.error("next url text list : " + nextURL_a_List);
+            if(nextURL_a_List.size()>0)
             {
-                List<String> nextURLList = page.getHtml().xpath("//*[@id='pagebar_container']/a/@href").all();
-                String nextURL = "https://news.sogou.com/news" + nextURLList.get(nextURLList.size()-1);
-                page.addTargetRequest(nextURL);
-                logger.debug("next url: " + nextURL);
+                if (nextURL_a_List.get(nextURL_a_List.size()-2).equals("下一页"))
+                {
+                    start += 10;
+                    String nextURL = "http://sou.chinanews.com/search.do?q=" + "中美贸易战" + "&start=" + start;
+                    page.addTargetRequest(nextURL);
+                    logger.debug("next url: " + nextURL);
+                }
             }
+
         }
         else
         {
-            logger.error("in else");
+
             String Title = page.getHtml()
-                    .xpath("//*[@id='Main-Article-QQ']/div/div[1]/div[1]/div[1]/h1/text()").toString();
+                    .xpath("//*[@id='cont_1_1_2']/h1/text()").toString();
             String Time = page.getHtml()
-                    .xpath("//*[@id='Main-Article-QQ']/div/div[1]/div[1]/div[1]/div/div[1]/span[3]/text()").toString();
+                    .xpath("//*[@id='cont_1_1_2']/div[@class='left-time']/div[@class='left-t']/text()").toString();
             String Content = page.getHtml()
-                    .xpath("//*[@id='Cnt-Main-Article-QQ']/allText()").toString();
+                    .xpath("//*[@id='cont_1_1_2']/div[@class='left_zw']/allText()").toString();
             if (Title!=null && Content!=null )
             {
                 logger.debug("add a record");
@@ -78,7 +78,7 @@ public class qqProcessor implements PageProcessor {
                 logger.debug("Content: " + Content);
                 page.putField("Content",Content);
                 page.putField("URL",page.getUrl().toString());
-                page.putField("Source","腾讯新闻");
+                page.putField("Source","中国新闻网");
             }
 
         }
@@ -89,10 +89,11 @@ public class qqProcessor implements PageProcessor {
     public void creatSpider()
     {
         System.setProperty("selenuim_config", "D://spiderProject/webMagicProject/chromedriver/config.ini");
-        String searchURL = "https://news.sogou.com/news?query=site:qq.com " + "中美贸易战";
+        String searchURL = "http://sou.chinanews.com/search.do?q=" + "中美贸易战";
+        //http://sou.chinanews.com/search.do?q=%E4%B8%AD%E7%BE%8E%E8%B4%B8%E6%98%93%E6%88%98
         SeleniumDownloader seleniumDownloader = new SeleniumDownloader("D://spiderProject/webMagicProject/chromedriver/chromedriver.exe");
-        seleniumDownloader.setSleepTime(10000);
-        Spider.create(new qqProcessor())
+        seleniumDownloader.setSleepTime(3000);
+        Spider.create(new ChinaNewsProcessor())
                 .setDownloader(seleniumDownloader)
                 .addUrl(searchURL)
                 .addPipeline(new MySQLPipeline(newsRepository))
