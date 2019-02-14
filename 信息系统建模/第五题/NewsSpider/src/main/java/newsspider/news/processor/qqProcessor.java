@@ -2,6 +2,7 @@ package newsspider.news.processor;
 
 import newsspider.news.pipeline.MySQLPipeline;
 import newsspider.news.repository.NewsRepository;
+import newsspider.news.utils.getDate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import us.codecraft.webmagic.Spider;
 import us.codecraft.webmagic.downloader.selenium.SeleniumDownloader;
 import us.codecraft.webmagic.processor.PageProcessor;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -30,6 +32,8 @@ public class qqProcessor implements PageProcessor {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
+    private getDate getdate = new getDate();
+
     @Override
     public Site getSite()
     {
@@ -40,7 +44,6 @@ public class qqProcessor implements PageProcessor {
     public void process(Page page)
     {
         logger.debug("url: " + page.getUrl().toString());
-        logger.debug(page.getHtml().toString());
         boolean flag = page.getUrl().regex(first_url).match();
         logger.error(String.valueOf(flag));
 
@@ -67,15 +70,19 @@ public class qqProcessor implements PageProcessor {
                     .xpath("//*[@id='Main-Article-QQ']/div/div[1]/div[1]/div[1]/h1/text()").toString();
             String Time = page.getHtml()
                     .xpath("//*[@id='Main-Article-QQ']/div/div[1]/div[1]/div[1]/div/div[1]/span[3]/text()").toString();
+            Date time = new Date();
+            if (Time != null)
+                time = getdate.convertToDate(Time);
+            else
+                logger.debug("time : " + Time);
             String Content = page.getHtml()
                     .xpath("//*[@id='Cnt-Main-Article-QQ']/allText()").toString();
-            if (Title!=null && Content!=null )
+            if (Title!=null )
             {
                 logger.debug("add a record");
-                logger.debug(Title);
+
                 page.putField("Title",Title);
-                page.putField("Time",Time);
-                logger.debug("Content: " + Content);
+                page.putField("Time",time);
                 page.putField("Content",Content);
                 page.putField("URL",page.getUrl().toString());
                 page.putField("Source","腾讯新闻");

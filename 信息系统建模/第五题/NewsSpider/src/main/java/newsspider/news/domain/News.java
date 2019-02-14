@@ -5,6 +5,7 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import java.util.Date;
 
 /**
  * 实体类
@@ -21,7 +22,8 @@ public class News {
 
 
     private String title;
-    private String time;
+    @Column(columnDefinition = "Date")
+    private Date time;
     private String source;
 
     @Column(columnDefinition = "longtext")
@@ -30,12 +32,11 @@ public class News {
     private String URL;
 
 
-
-    public String getTime() {
+    public Date getTime() {
         return time;
     }
 
-    public void setTime(String time) {
+    public void setTime(Date time) {
         this.time = time;
     }
 

@@ -1,9 +1,9 @@
 package newsspider.news.processor;
 
-
 import newsspider.news.pipeline.MySQLPipeline;
 import newsspider.news.repository.NewsRepository;
 import newsspider.news.utils.getDate;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -15,23 +15,24 @@ import us.codecraft.webmagic.processor.PageProcessor;
 
 import java.util.Date;
 import java.util.List;
-import org.slf4j.Logger;
+
 
 /**
- * 搜狗搜索，搜狐新闻爬虫
+ * 搜狐搜索，凤凰网
  */
-
 @Component
-public class SohuProcessor implements PageProcessor {
+public class fenghuangProcessor implements PageProcessor{
     @Autowired
     NewsRepository newsRepository;
 
 
-    public static final String first_url = "https://news\\.sogou\\.com/news\\?query=site%3Asohu\\.com[\\S]+";
+    public static final String first_url = "https://news\\.sogou\\.com/news\\?query=site%3Aifeng\\.com[\\S]+";
 
     private Site site = Site.me().setRetryTimes(3).setSleepTime(6000).setCharset("UTF-8");
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
+
+    private int start = 0;
 
     private getDate getdate = new getDate();
 
@@ -64,19 +65,19 @@ public class SohuProcessor implements PageProcessor {
         }
         else
         {
-
+            logger.debug("in else");
             String Title = page.getHtml()
-                    .xpath("//*[@id='article-container']/div[2]/div[1]/div[1]/div[1]/h1/text()").toString();
+                    .xpath("//*[@id='artical_topic']/text()").toString();
             logger.debug("Title : " + Title);
             String Time = page.getHtml()
-                    .xpath("//*[@id='news-time']/text()").toString();
+                    .xpath("//*[@id='artical_sth']/p/span[1]/text()").toString();
             Date time = new Date();
             if (Time != null)
                 time = getdate.convertToDate(Time);
             else
                 logger.debug("time : " + Time);
             String Content = page.getHtml()
-                    .xpath("//*[@id='mp-editor']/allText() ").toString();
+                    .xpath("//*[@id='main_content']/allText() ").toString();
             if (Title!=null)
             {
                 logger.debug("add a record");
@@ -85,7 +86,7 @@ public class SohuProcessor implements PageProcessor {
                 page.putField("Time",time);
                 page.putField("Content",Content);
                 page.putField("URL",page.getUrl().toString());
-                page.putField("Source","搜狐新闻");
+                page.putField("Source","凤凰网");
             }
 
         }
@@ -96,10 +97,11 @@ public class SohuProcessor implements PageProcessor {
     public void creatSpider()
     {
         System.setProperty("selenuim_config", "D://spiderProject/webMagicProject/chromedriver/config.ini");
-        String searchURL = "https://news.sogou.com/news?query=site%3Asohu.com" + "中美贸易战";
+        //String searchURL = "https://news.sogou.com/news?query=site%3Aifeng.com" + "中美贸易战";
+        String searchURL = "https://news.sogou.com/news?query=site%3Aifeng.com" + "+中美贸易战";
         SeleniumDownloader seleniumDownloader = new SeleniumDownloader("D://spiderProject/webMagicProject/chromedriver/chromedriver.exe");
         seleniumDownloader.setSleepTime(3000);
-        Spider.create(new SohuProcessor())
+        Spider.create(new fenghuangProcessor())
                 .setDownloader(seleniumDownloader)
                 .addUrl(searchURL)
                 .addPipeline(new MySQLPipeline(newsRepository))
@@ -111,5 +113,4 @@ public class SohuProcessor implements PageProcessor {
     {
 
     }
-
 }
